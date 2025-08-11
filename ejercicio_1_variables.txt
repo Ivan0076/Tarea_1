@@ -1,0 +1,12 @@
+let edad_1: Int = 50
+let edad_2 = 505.4
+print("El tipo de edad_2 es \(type(of: edad_2))")
+print("El tipo de edad_1 es \(type(of: edad_1))")
+
+let nombre_1: String = "Papuncio"
+let nombre_2 = "Papuncia"
+print("El tipo de nombre_2 es \(type(of: edad_2))")
+print("El tipo de nombre_1 es \(type(of: nombre_1))")
+
+
+https://swiftfiddle.com/
