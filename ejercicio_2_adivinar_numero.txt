@@ -21,7 +21,7 @@ func validar_numero() -> Int{
 var intentos = 0
 var numeroRandom = Int.random(in: 1...100)
 print("REGLAS DEL JUEGO")
-print("Escoge un número del 1 al 3")
+print("Escoge un número del 1 al 100")
 print("Yo escogeré uno de forma aleatoria")
 print("Si adivinas, ganaras, si no el juego continua")
 print("")
