@@ -1,0 +1,121 @@
+/*Este código usa a los maestros elementales del universo de Avatar: The Last Airbender,
+con clases simples que muestran de qué nación son y qué elemento controlan.*/
+
+// CLASE 1: Maestro Agua
+class MaestroAgua {
+    var nombre: String
+    var nacion: String
+    
+    init(nombre: String, nacion: String) {
+        self.nombre = nombre
+        self.nacion = nacion
+    }
+    
+    func deQueNacionEs() -> String {
+        return "\(nombre) pertenece a la \(nacion)"
+    }
+    
+    func queElementoUsa() -> String {
+        return "\(nombre) controla el elemento Agua"
+    }
+}
+
+// CLASE 2: Maestro Tierra
+class MaestroTierra {
+    var nombre: String
+    var nacion: String
+    
+    init(nombre: String, nacion: String) {
+        self.nombre = nombre
+        self.nacion = nacion
+    }
+    
+    func deQueNacionEs() -> String {
+        return "\(nombre) es de la \(nacion)"
+    }
+    
+    func queElementoUsa() -> String {
+        return "\(nombre) domina el elemento Tierra"
+    }
+}
+
+// CLASE 3: Maestro Fuego 
+class MaestroFuego {
+    var nombre: String
+    var nacion: String
+    
+    init(nombre: String, nacion: String) {
+        self.nombre = nombre
+        self.nacion = nacion
+    }
+    
+    func deQueNacionEs() -> String {
+        return "\(nombre) pertenece a la \(nacion)"
+    }
+    
+    func queElementoUsa() -> String {
+        return "\(nombre) maneja el elemento Fuego"
+    }
+}
+
+// CLASE 4: Maestro Aire 
+class MaestroAire {
+    var nombre: String
+    var nacion: String
+    
+    init(nombre: String, nacion: String) {
+        self.nombre = nombre
+        self.nacion = nacion
+    }
+    
+    func deQueNacionEs() -> String {
+        return "\(nombre) viene de la \(nacion)"
+    }
+    
+    func queElementoUsa() -> String {
+        return "\(nombre) controla el elemento Aire"
+    }
+}
+
+// CLASE 5: Avatar 
+class Avatar {
+    var nombre: String
+    var nacion: String
+    
+    init(nombre: String, nacion: String) {
+        self.nombre = nombre
+        self.nacion = nacion
+    }
+    
+    func deQueNacionEs() -> String {
+        return "\(nombre) nació como \(nacion), pero el Avatar pertenece a todas las naciones"
+    }
+    
+    func queElementoUsa() -> String {
+        return "\(nombre) puede usar todos los elementos: Aire, Agua, Tierra y Fuego"
+    }
+}
+
+let katara = MaestroAgua(nombre: "Katara", nacion: "Nación del agua")
+print(katara.deQueNacionEs())
+print(katara.queElementoUsa())
+print()
+
+let toph = MaestroTierra(nombre: "Toph", nacion: "Nación tierra")
+print(toph.deQueNacionEs())
+print(toph.queElementoUsa())
+print()
+
+let zuko = MaestroFuego(nombre: "Zuko", nacion: "Nación del fuego")
+print(zuko.deQueNacionEs())
+print(zuko.queElementoUsa())
+print()
+
+let aang = MaestroAire(nombre: "Aang", nacion: "Nación del aire")
+print(aang.deQueNacionEs())
+print(aang.queElementoUsa())
+print()
+
+let kiyoshi = Avatar(nombre: "Kiyoshi", nacion: "Reino tierra")
+print(kiyoshi.deQueNacionEs())
+print(kiyoshi.queElementoUsa())
