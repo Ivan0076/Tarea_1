@@ -1,0 +1,425 @@
+//Se agregó ganador, visibilidad aleatoria y fin del juego
+
+import Foundation
+
+enum RolesJuegoEscondidas{
+    case contando
+    case buscando_jugadores
+
+    
+    case buscando_escondite
+    case escondido
+    case regresando_a_base
+    case encontrado
+    
+    case cantar_victoria
+    case suspendido /// Es el caso en que el juego vuelve a su estado original de inicio.
+}
+
+
+protocol JugadorDeEscondidas: AnyObject{
+    var rol: RolesJuegoEscondidas { get set }
+    var compañeros_de_juego: [JugadorDeEscondidas] { get set }
+    var nombre: String { get set }
+    var lugar_actual: UbicacionFisica? { get set }
+    var visibilidad: Double { get set }
+    
+    func actualizar() -> Bool
+    
+    func establecer_rol(_ rol_nuevo: RolesJuegoEscondidas) -> Bool
+    
+    func agregar_compañero(_ compañero_nuevo: JugadorDeEscondidas) -> Bool
+}
+
+
+
+
+extension JugadorDeEscondidas {
+    func establecer_rol(_ rol_nuevo: RolesJuegoEscondidas) -> Bool {
+        switch(self.rol){
+            case .suspendido: 
+                self.rol = rol_nuevo
+                return true
+            
+            case .cantar_victoria, .encontrado: 
+                if rol_nuevo == .suspendido {
+                    self.rol = rol_nuevo
+                    return true
+                }
+                return false
+                
+            default: 
+                // Permitir cambiar a regresando_a_base solo si el buscador terminó de contar
+                if rol_nuevo == .regresando_a_base && self.rol == .escondido {
+                    self.rol = rol_nuevo
+                    return true
+                }
+                return false
+        }
+    }
+}
+
+struct Ubicacion2Dimensiones{
+    var x: Int
+    var y: Int 
+    
+    init(_ x: Int, _ y: Int){
+        self.x = x
+        self.y = y
+    }
+}
+
+class UbicacionFisica{
+    var nombre: String
+    var lugares_cercanos: [UbicacionFisica]
+    
+    //init(_ nombre: String, lugares_cercanos: [UbicacionFisica]){
+    init(_ nombre: String){
+        self.nombre = nombre
+        self.lugares_cercanos = []
+    }
+    
+    func agregar_lugar(_ lugar: UbicacionFisica) -> Bool{
+        for ubicacion in lugares_cercanos{
+            if ubicacion.nombre == lugar.nombre{
+                return false
+            }
+        }
+        
+        lugar.lugares_cercanos.append(self)
+        self.lugares_cercanos.append(lugar)
+        
+        return true
+    }
+}
+
+class Personaje {
+    var nombre: String
+    var ubicacion: UbicacionFisica?
+    
+    init(_ nombre: String){
+        self.nombre = nombre
+        self.ubicacion = nil
+    }
+    
+    func establecer_ubicacion(_ nueva_ubicacion: UbicacionFisica) -> Bool{
+        if ubicacion == nil{
+            self.ubicacion = nueva_ubicacion
+            return true
+        }
+        
+        if ubicacion!.nombre == nueva_ubicacion.nombre{
+            return false
+        }
+        
+        ubicacion = nueva_ubicacion
+        return true
+    }
+    
+}
+
+class PersonajeJugable: Personaje, JugadorDeEscondidas{
+    var visibilidad: Double
+    var rol: RolesJuegoEscondidas = .suspendido
+
+    var lugar_actual: UbicacionFisica?
+    
+    var numero_contado: Int
+    
+    var compañeros_de_juego: [JugadorDeEscondidas] = []
+    
+    // Constructor con visibilidad específica
+    init(_ nombre: String, visibilidad: Double){
+        self.visibilidad = visibilidad
+        numero_contado = 0
+        super.init(nombre)
+        lugar_actual = nil
+    }
+    
+    // Constructor con visibilidad aleatoria
+    override convenience init(_ nombre: String) {
+        let visibilidad_aleatoria = Double.random(in: 0.1...0.9)
+        self.init(nombre, visibilidad: visibilidad_aleatoria)
+        print("\(nombre) tiene visibilidad aleatoria: \(String(format: "%.2f", visibilidad_aleatoria))")
+    }
+    
+    func actualizar() -> Bool{
+        switch(rol){
+            case .contando:
+                self.contar_para_buscar()
+            
+            case .buscando_jugadores:
+                self.identificar_jugadores()
+                self.moverse_de_lugar()
+                self.verificar_victoria_buscador() // Nueva función
+                
+            case .buscando_escondite:
+                self.moverse_de_lugar()
+                
+                let quedarse_quieto = Int.random(in: 0...10)
+                if quedarse_quieto % 3 == 0{
+                    self.rol = .escondido
+                }
+                
+            case .escondido:
+                // Verificar si el buscador terminó de contar
+                if buscadorTerminoDeContar() {
+                    let decision = Int.random(in: 0...100)
+                    // 70% de probabilidad de empezar a regresar
+                    if decision < 70 {
+                        self.rol = .regresando_a_base
+                        print("\(nombre) empieza a regresar a la base")
+                    }
+            }
+            case .regresando_a_base:
+                self.moverse_hacia_base()
+                self.verificar_victoria_escondido() // Nueva función
+                
+            case .cantar_victoria:
+                print("ganador")
+                return true // Indica que el juego debe terminar
+                
+            case .suspendido:
+                print("YO \(nombre) he perdido")
+            
+            default:
+                print("todo")
+        }
+        return false
+    }
+    
+    func verificar_victoria_buscador() {
+        // Verificar si todos los jugadores excepto él mismo están suspendidos
+        var jugadoresActivos = 0
+        for compañero in compañeros_de_juego {
+            if compañero.rol != .suspendido && compañero.nombre != self.nombre {
+                jugadoresActivos += 1
+            }
+        }
+        
+        if jugadoresActivos == 0 {
+            self.rol = .cantar_victoria
+            print("\(nombre) ha encontrado a todos y gana!")
+        }
+    }
+    
+    func verificar_victoria_escondido() {
+        // Verificar si llegó a la base sin ser visto
+        if self.lugar_actual?.nombre == "Loby" {
+            self.rol = .cantar_victoria
+            print("\(nombre) ha llegado a la base y gana!")
+        }
+    }
+    
+    func moverse_hacia_base() {
+        // Movimiento inteligente hacia la base (Loby)
+        if let ubicacionActual = lugar_actual {
+            // Buscar camino directo a Loby
+            for ubicacion in ubicacionActual.lugares_cercanos {
+                if ubicacion.nombre == "Loby" {
+                    cambiar_de_lugar_a(ubicacion)
+                    return
+                }
+            }
+            
+            // Si no hay camino directo, moverse aleatoriamente
+            moverse_de_lugar()
+        }
+    }
+    
+    func buscadorTerminoDeContar() -> Bool {
+        // Verificar si el buscador terminó de contar
+        for compañero in compañeros_de_juego {
+            if compañero.rol == .buscando_jugadores {
+                return true
+            }
+        }
+        return false
+    }
+    
+    func identificar_jugadores(){
+        for compañero in compañeros_de_juego{
+            if compañero.rol != .suspendido, compañero.lugar_actual!.nombre == self.lugar_actual!.nombre{
+                let probabildiad_de_omitir = Int(compañero.visibilidad * 100)
+                
+                let suerte = Int.random(in: 0...100)
+                
+                if suerte > probabildiad_de_omitir{
+                    compañero.rol = .suspendido
+                }
+                
+            }
+        }
+    }
+    
+    func moverse_de_lugar(){
+        var indice_de_nuevo_lugar = Int.random(
+                in: 0..<lugar_actual!.lugares_cercanos.count
+            )
+            
+        var nuevo_lugar = lugar_actual!.lugares_cercanos[indice_de_nuevo_lugar]
+        
+        let deberia_de_cambiar = Int.random(in: 0...10)
+        
+        if deberia_de_cambiar % 2 == 0 {
+            cambiar_de_lugar_a(nuevo_lugar)
+        }
+    }
+    
+    func contar_para_buscar(){
+        numero_contado += 1
+        print("Soy \(nombre) y voy en el \(numero_contado)")
+        
+        if numero_contado >= 10{
+            self.rol = .buscando_jugadores
+        }
+    }
+    
+    func cambiar_de_lugar_a(_ ubicacion: UbicacionFisica) -> Bool{
+        if self.lugar_actual == nil {
+            self.lugar_actual = ubicacion
+            return true 
+        } 
+        
+        // if let ubi = lugar actual {}
+        //if ubicacion != nil && ubicacion.nombre == lugar_actual.nombre{
+        if ubicacion.nombre == self.lugar_actual!.nombre{
+            return false
+        }
+        
+        lugar_actual = ubicacion
+        return true
+    }
+    
+    func agregar_compañero(_ compañero_nuevo: JugadorDeEscondidas) -> Bool{
+        if compañero_nuevo.nombre == self.nombre{
+            return false
+        }
+        
+        for compañero in compañeros_de_juego{
+            if compañero.nombre == compañero_nuevo.nombre{
+                return false
+            }
+        }
+        
+        compañeros_de_juego.append(compañero_nuevo)
+        return true
+    }
+    
+}
+
+func iniciar_juego(jugadores: [JugadorDeEscondidas]) {
+    let numero_del_jugador_que_busca = Int.random(in: 0..<jugadores.count)
+    var jugador_que_busca: JugadorDeEscondidas = jugadores[numero_del_jugador_que_busca]
+    
+    jugador_que_busca.visibilidad = 1.0
+    
+    jugador_que_busca.establecer_rol(.contando)
+    
+    for jugador in jugadores {
+        jugador_que_busca.agregar_compañero(jugador)
+        
+        if jugador.rol == .suspendido{
+            jugador.establecer_rol(.buscando_escondite)
+        }
+    }
+
+    // print("el numero del jugador es \(jugador_que_busca)")
+}
+
+// Función auxiliar para crear jugadores con visibilidad aleatoria
+func crear_jugadores_aleatorios(nombres: [String]) -> [PersonajeJugable] {
+    var jugadores: [PersonajeJugable] = []
+    
+    for nombre in nombres {
+        jugadores.append(PersonajeJugable(nombre)) // Usa el constructor con visibilidad aleatoria
+    }
+    
+    return jugadores
+}
+
+let punto_de_inicio = Ubicacion2Dimensiones(1, 3)
+
+print("=== CREANDO JUGADORES CON VISIBILIDAD ALEATORIA ===")
+let nombres_jugadores = ["Pepito Bananas", "Wally", "Chuchito", "Anabelle"]
+var jugadores = crear_jugadores_aleatorios(nombres: nombres_jugadores)
+
+let loby = UbicacionFisica("Loby")
+let oficina = UbicacionFisica("Oficina")
+let sala_de_estar = UbicacionFisica("Sala de estar")
+let salon = UbicacionFisica("Salon")
+let baños = UbicacionFisica("Baños")
+let cocina = UbicacionFisica("Cocina")
+
+
+// Loby --- sala_de_estar
+loby.agregar_lugar(sala_de_estar)
+
+// Loby --- Salon
+loby.agregar_lugar(salon)
+
+// Loby --- oficina
+loby.agregar_lugar(oficina)
+
+// sala_de_estar --- Baño
+sala_de_estar.agregar_lugar(baños)
+
+// Salon --- Baño
+salon.agregar_lugar(baños)
+
+// Baño --- sala_de_estar
+baños.agregar_lugar(sala_de_estar)
+
+// Baño --- salon
+baños.agregar_lugar(salon)
+
+// Salon --- Cocina
+salon.agregar_lugar(cocina)
+
+// Cocina --- Salon
+cocina.agregar_lugar(salon)
+
+
+
+var ubicaciones_juego: [UbicacionFisica] = []
+ubicaciones_juego.append(loby)
+
+
+iniciar_juego(jugadores: jugadores)
+
+for jugador in jugadores{
+    jugador.cambiar_de_lugar_a(loby)
+}
+
+
+/// Aqui tenemos la parte de auto juego
+var juegoActivo = true
+var ciclo_actual = 0 
+
+// Aqui va mi juego
+while juegoActivo && ciclo_actual < 100 {
+    juegoActivo = false
+    
+    for jugador in jugadores {
+        let resultado = jugador.actualizar()
+        if jugador.rol == .cantar_victoria {
+            print("=== JUEGO TERMINADO ===")
+            print("¡\(jugador.nombre) es el ganador!")
+            juegoActivo = false
+            break
+        }
+        juegoActivo = juegoActivo || !resultado
+    }
+    
+    for jugador in jugadores{
+        print("El rol de \(jugador.nombre) es \(jugador.rol)")
+        print("Estoy en: \(jugador.lugar_actual?.nombre ?? "No se")")
+    }
+    print("")
+   
+    ciclo_actual += 1 
+}
+
+if ciclo_actual >= 100 {
+    print("El juego terminó por tiempo máximo")
+}
